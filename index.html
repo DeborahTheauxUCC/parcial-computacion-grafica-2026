@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preguntados - Parcial de Computación Gráfica</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2c3e50;
+            --correct-color: #2ecc71;
+            --incorrect-color: #e74c3c;
+            --neutral-bg: #ecf0f1;
+            --white: #ffffff;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--secondary-color);
+            color: var(--secondary-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .quiz-container {
+            background: var(--white);
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 600px;
+            overflow: hidden;
+            text-align: center;
+        }
+
+        .header {
+            background-color: var(--primary-color);
+            color: var(--white);
+            padding: 20px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.5em;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        #question-text {
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: 25px;
+            min-height: 50px;
+        }
+
+        .answer-options {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .btn {
+            background-color: var(--neutral-bg);
+            border: 2px solid transparent;
+            border-radius: 10px;
+            padding: 15px;
+            font-size: 1em;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover:not([disabled]) {
+            background-color: #dbe4e8;
+            border-color: var(--primary-color);
+        }
+        
+        .btn:disabled {
+            cursor: not-allowed;
+        }
+
+        .btn.correct {
+            background-color: var(--correct-color);
+            color: var(--white);
+            font-weight: bold;
+        }
+
+        .btn.incorrect {
+            background-color: var(--incorrect-color);
+            color: var(--white);
+            font-weight: bold;
+        }
+
+        #next-btn {
+            display: none; /* Oculto por defecto */
+            width: 50%;
+            margin: 30px auto 0;
+            padding: 15px;
+            background-color: var(--primary-color);
+            color: var(--white);
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #next-btn:hover {
+            background-color: #2980b9;
+        }
+        
+        #results-container {
+            padding: 40px;
+        }
+        
+        #results-container h2 {
+            margin-top: 0;
+        }
+
+        #play-again-btn {
+             width: 50%;
+            margin: 30px auto 0;
+            padding: 15px;
+            background-color: var(--correct-color);
+            color: var(--white);
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+
+    </style>
+</head>
+<body>
+
+    <div class="quiz-container">
+        <div class="header">
+            <h1>Desafío de Computación Gráfica 🏆</h1>
+            <div class="stats">
+                <span id="question-counter"></span>
+                <span id="score">Puntaje: 0</span>
+            </div>
+        </div>
+        
+        <div class="main-content" id="quiz-area">
+            <p id="question-text">Aquí va la pregunta...</p>
+            <div class="answer-options" id="answer-buttons">
+                </div>
+            <button id="next-btn">Siguiente Pregunta →</button>
+        </div>
+
+        <div class="main-content" id="results-container" style="display: none;">
+            <h2>¡Juego Terminado!</h2>
+            <p id="results-text">Obtuviste X de Y respuestas correctas.</p>
+            <button id="play-again-btn">Volver a Jugar</button>
+        </div>
+    </div>
+
+    <script>
+        const questions = [
+            // Módulo 1: Motor Gráfico Básico
+            {
+              question: "¿Qué modelo de color utilizamos en nuestro proyecto? ¿Por qué?",
+              answers: [
+                { text: "CMYK: es el estándar de impresión y mezcla tres colores primarios sustractivos en pantalla.", correct: false },
+                { text: "HSV: separa tono, saturación y brillo, lo que simplifica los cálculos de luz en el shader.", correct: false },
+                { text: "YCbCr: separa luminancia y color, lo que reduce el tamaño de las texturas en la GPU.", correct: false },
+                { text: "RGB con canal alfa (RGBA): las pantallas emiten luz mezclando tres primarios aditivos", correct: true }
+              ]
+            },
+            {
+              question: "¿Qué primitivas gráficas utilizamos en nuestro proyecto?",
+              answers: [
+                { text: "Triángulos: con ellos armamos el Rect y el Box. Para las hitbox usamos líneas", correct: true },
+                { text: "Cuadriláteros: con ellos armamos el Rect y el Box. Para las hitbox usamos puntos.", correct: false },
+                { text: "Puntos y líneas: son las únicas primitivas que acepta OpenGL moderno en la GPU.", correct: false },
+                { text: "Polígonos de N lados: cada cara del Box se dibuja como un único polígono de 4 lados.", correct: false }
+              ]
+            },
+            {
+              question: "¿Cuál es la coordenada homogénea w para un punto? ¿Por qué?",
+              answers: [
+                { text: "w = 0, porque el punto no debe verse afectado por la traslación (0 es el absorbente).", correct: false },
+                { text: "w = -1, porque así el punto queda delante de la cámara, que mira hacia el eje -Z.", correct: false },
+                { text: "w = 1, porque el punto debe verse afectado por la traslación (1 es el neutro)", correct: true },
+                { text: "w = 1, porque así la traslación se anula y el punto conserva su posición original.", correct: false }
+              ]
+            },
+            {
+              question: "¿Cuál es la coordenada homogénea w para una dirección? ¿Por qué?",
+              answers: [
+                { text: "w = 1, porque una dirección también debe trasladarse junto con el objeto al que pertenece.", correct: false },
+                { text: "w = 0, porque una dirección no debe verse afectada por la traslación (0 es el absorbente)", correct: true },
+                { text: "w = 0, porque así la dirección queda normalizada automáticamente al multiplicar la matriz.", correct: false },
+                { text: "w = -1, porque una dirección siempre debe apuntar hacia la cámara, que mira hacia -Z.", correct: false }
+              ]
+            },
+            {
+              question: "¿Qué estructura matemática me permite pasar un vector de un espacio vectorial (por ejemplo, de las coordenadas de la cámara) a otro espacio vectorial (coordenadas de la escena)?",
+              answers: [
+                { text: "Una matriz de transformación (4x4 en 3D, por las coordenadas homogéneas)", correct: true },
+                { text: "Un producto escalar entre los ejes de ambos espacios, que devuelve el vector ya transformado.", correct: false },
+                { text: "Un producto vectorial entre los ejes de ambos espacios (vec4 en 3D, por la coordenada w).", correct: false },
+                { text: "Un vector de traslación que se suma al original para llevarlo a las coordenadas del otro espacio.", correct: false }
+              ]
+            },
+            {
+              question: "¿Qué dimensiones (filas y columnas) debe tener una matriz para poder aplicar transformaciones (rotación, traslado, escala) a objetos 3D?",
+              answers: [
+                { text: "3x3: rotación, escala y traslación son las tres transformaciones lineales que existen en 3D.", correct: false },
+                { text: "3x4: tres filas para los ejes x, y, z y una columna extra que se usa solo para la escala.", correct: false },
+                { text: "4x4: la cuarta fila y la cuarta columna guardan la escala, que no es una transformación lineal.", correct: false },
+                { text: "4x4: rotación y escala entran en 3x3, pero la traslación necesita la coordenada homogénea", correct: true }
+              ]
+            },
+            {
+              question: "¿Qué función cumple, en Computación Gráfica, la inversa de una matriz? Dame un ejemplo.",
+              answers: [
+                { text: "Normaliza la transformación. Ej.: dejar en longitud 1 la normal de un cubo que fue escalado.", correct: false },
+                { text: "Combina transformaciones. Ej.: unir las matrices de modelo, vista y proyección en una sola.", correct: false },
+                { text: "Proyecta la transformación. Ej.: llevar un punto de la escena 3D a las coordenadas NDC (-1 a 1).", correct: false },
+                { text: "Deshace la transformación. Ej.: llevar un rayo al espacio del objeto (inversa de la de modelo)", correct: true }
+              ]
+            },
+            {
+              question: "¿A qué hace referencia el \"Espacio del Objeto\"?",
+              answers: [
+                { text: "Al sistema de coordenadas global de la escena, común a todos los objetos.", correct: false },
+                { text: "Al sistema de coordenadas de la cámara, con el origen en su posición.", correct: false },
+                { text: "Al espacio de -1 a 1 en los tres ejes que queda después de la proyección.", correct: false },
+                { text: "Al sistema de coordenadas local del objeto, con el origen en su centro", correct: true }
+              ]
+            },
+            {
+              question: "¿A qué hace referencia el \"Espacio del Mundo\"?",
+              answers: [
+                { text: "Al sistema de coordenadas local del objeto, con el origen en su centro.", correct: false },
+                { text: "Al sistema de coordenadas de la cámara, con el origen en su posición.", correct: false },
+                { text: "Al sistema de coordenadas global de la escena, común a todos los objetos", correct: true },
+                { text: "Al sistema de coordenadas de la ventana, medido en píxeles desde una esquina.", correct: false }
+              ]
+            },
+            {
+              question: "¿A qué hace referencia el \"Espacio de Vista\"?",
+              answers: [
+                { text: "Al sistema de coordenadas global de la escena, común a todos los objetos.", correct: false },
+                { text: "Al sistema de coordenadas local del objeto, con el origen en su centro.", correct: false },
+                { text: "Al sistema de coordenadas de la ventana, medido en píxeles desde una esquina.", correct: false },
+                { text: "Al sistema de coordenadas de la cámara, con el origen en su posición", correct: true }
+              ]
+            },
+            {
+              question: "¿Dónde está el punto de origen, normalmente, en un objeto de la escena?",
+              answers: [
+                { text: "En el vértice inferior izquierdo del objeto.", correct: false },
+                { text: "En la posición de la cámara que lo observa.", correct: false },
+                { text: "En el centro geométrico del objeto", correct: true },
+                { text: "En el origen del espacio del mundo (0,0,0).", correct: false }
+              ]
+            },
+            {
+              question: "¿Cuál es la principal diferencia entre la proyección en perspectiva y la ortográfica?",
+              answers: [
+                { text: "En ortográfica lo lejano se ve más chico; en perspectiva se mantiene el tamaño.", correct: false },
+                { text: "En perspectiva se usan matrices 4x4; en ortográfica alcanza con matrices de 3x3.", correct: false },
+                { text: "En perspectiva se aplica el depth test; en ortográfica no se puede usar el depth test.", correct: false },
+                { text: "En perspectiva lo lejano se ve más chico; en ortográfica se mantiene el tamaño", correct: true }
+              ]
+            },
+            {
+              question: "¿Qué es el VBO?",
+              answers: [
+                { text: "Un buffer en la GPU con los índices que indican qué vértices forman cada triángulo.", correct: false },
+                { text: "Un buffer en la GPU con los atributos de los vértices (posición, normal, UV, tangente)", correct: true },
+                { text: "Un objeto que describe cómo leer los datos de los buffers y los vincula al shader.", correct: false },
+                { text: "Un buffer en la CPU con los uniforms de cada objeto que se envían en cada frame.", correct: false }
+              ]
+            },
+            {
+              question: "¿Qué es el IBO?",
+              answers: [
+                { text: "Un buffer con los atributos de cada vértice: posición, normal, UV y tangente.", correct: false },
+                { text: "Un objeto que describe el formato de los datos del VBO y lo vincula con el shader.", correct: false },
+                { text: "Un buffer con los índices que indican qué vértices del VBO forman cada triángulo", correct: true },
+                { text: "Un buffer con la textura de cada objeto, indexada por la coordenada UV de cada vértice.", correct: false }
+              ]
+            },
+            {
+              question: "¿Qué es el VAO?",
+              answers: [
+                { text: "Describe cómo están organizados los datos del VBO y los vincula con el shader", correct: true },
+                { text: "Almacena en la GPU los atributos de cada vértice: posición, normal, UV y tangente.", correct: false },
+                { text: "Almacena los índices que indican qué vértices del VBO forman cada triángulo de la malla.", correct: false },
+                { text: "Almacena los uniforms de cada objeto para enviarlos al shader antes de dibujar cada frame.", correct: false }
+              ]
+            },
+            {
+              question: "¿En qué lenguaje programamos para hacer un shader con OpenGL?",
+              answers: [
+                { text: "HLSL.", correct: false },
+                { text: "Python.", correct: false },
+                { text: "GLSL", correct: true },
+                { text: "C++.", correct: false }
+              ]
+            },
+            {
+              question: "¿Qué tipo de unidades recorre el Vertex Shader?",
+              answers: [
+                { text: "Vértices: se ejecuta una vez por cada vértice del modelo", correct: true },
+                { text: "Fragmentos: se ejecuta una vez por cada candidato a píxel.", correct: false },
+                { text: "Triángulos: se ejecuta una vez por cada cara del modelo.", correct: false },
+                { text: "Objetos: se ejecuta una vez por cada entidad de la escena.", correct: false }
+              ]
+            },
+            {
+              question: "¿Qué tipo de unidades recorre el Fragment Shader?",
+              answers: [
+                { text: "Fragmentos: los candidatos a píxel que genera la rasterización", correct: true },
+                { text: "Vértices: los puntos que forman cada triángulo de la malla del objeto.", correct: false },
+                { text: "Píxeles: se ejecuta exactamente una vez por cada píxel de la ventana.", correct: false },
+                { text: "Texels: los puntos de la textura que se leen con la coordenada UV.", correct: false }
+              ]
+            },
+            {
+              question: "En el Render Pipeline de la GPU ¿Qué se ejecuta primero, el Vertex o el Fragment shader?",
+              answers: [
+                { text: "Primero el Fragment Shader, luego la rasterización y por último el Vertex Shader.", correct: false },
+                { text: "Primero el Vertex Shader, luego la rasterización y por último el Fragment Shader", correct: true },
+                { text: "Primero la rasterización, luego el Vertex Shader y por último el Fragment Shader.", correct: false },
+                { text: "Se ejecutan al mismo tiempo: cada uno procesa una mitad distinta de la pantalla.", correct: false }
+              ]
+            },
+            {
+              question: "¿Qué son los Uniforms? ¿En qué se diferencian con los atributos de un vértice?",
+              answers: [
+                { text: "Variables propias de cada vértice; los atributos tienen el mismo valor para todo el objeto.", correct: false },
+                { text: "Variables que el shader calcula y devuelve a la CPU; los atributos solo se pueden leer.", correct: false },
+                { text: "Variables que solo existen en el Fragment Shader; los atributos solo en el Vertex Shader.", correct: false },
+                { text: "Variables enviadas desde la CPU, iguales para todo el objeto; los atributos varían por vértice", correct: true }
+              ]
+            },
+            {
+              question: "¿Dónde encontramos matrices de transformación en nuestro proyecto?",
+              answers: [
+                { text: "Solo en el Vertex Shader, porque Python no puede operar con matrices de 4x4.", correct: false },
+                { text: "En Transform (model_matrix), en Camera (view y projection) y en los renderers", correct: true },
+                { text: "En Material, que guarda la matriz de cada objeto junto con su color y su brillo.", correct: false },
+                { text: "En pyglet_window.py, que calcula todas las matrices una sola vez al crear la ventana.", correct: false }
+              ]
+            },
+            {
+              question: "¿Para qué fin utilizamos Pyglet?",
+              answers: [
+                { text: "Para compilar los shaders, crear los buffers de vértices y enviarlos a la memoria de la GPU.", correct: false },
+                { text: "Para calcular las matrices de transformación y los productos escalar y vectorial entre vectores.", correct: false },
+                { text: "Para crear la ventana, el loop principal, los eventos de mouse y teclado, y cargar imágenes", correct: true },
+                { text: "Para calcular las intersecciones entre los rayos y las hitbox de los objetos de la escena.", correct: false }
+              ]
+            },
+            {
+              question: "¿Para qué fin utilizamos ModernGL?",
+              answers: [
+                { text: "Como wrapper de Python que simplifica el uso de OpenGL moderno", correct: true },
+                { text: "Para crear la ventana de la aplicación y capturar los eventos del mouse.", correct: false },
+                { text: "Como librería matemática para operar con vectores y matrices 4x4.", correct: false },
+                { text: "Para leer las imágenes de las texturas desde el disco en formato RGBA.", correct: false }
+              ]
+            },
+            {
+              question: "¿Qué sucedería si los nombres de los atributos de VERTEX_ATTRIBUTES no coinciden con los del shader?",
+              answers: [
+                { text: "ModernGL los vincularía igual, siguiendo el orden en que se declararon en el shader.", correct: false },
+                { text: "El shader los renombraría automáticamente y solo se verían los colores invertidos.", correct: false },
+                { text: "El VAO no podría vincular el buffer con la entrada del shader y ModernGL daría error", correct: true },
+                { text: "No pasaría nada: el nombre de cada atributo solo se usa como referencia interna.", correct: false }
+              ]
+            },
+            {
+              question: "¿Cómo le pasamos los atributos de la malla al Vertex Shader?",
+              answers: [
+                { text: "Con un VBO (datos) y un IBO (índices), organizados en un VAO", correct: true },
+                { text: "Con uniforms: uno por cada vértice de la malla, enviados en cada frame.", correct: false },
+                { text: "Con un SSBO que guarda todos los vértices de la escena en un solo buffer.", correct: false },
+                { text: "Con un sampler2D que guarda las posiciones de los vértices como colores.", correct: false }
+              ]
+            },
+            {
+              question: "¿Cómo le cambio el color a un cubo?",
+              answers: [
+                { text: "Cambiando el color de cada uno de sus vértices en meshes.py.", correct: false },
+                { text: "Cambiando el color de su Material en demo_scene.py", correct: true },
+                { text: "Cambiando el valor de gl_Position en el Vertex Shader del cubo.", correct: false },
+                { text: "Cambiando el color de fondo de la ventana en pyglet_window.py.", correct: false }
+              ]
+            },
+            {
+              question: "¿Cómo hago que uno de los cubos se deje de animar?",
+              answers: [
+                { text: "Quitándole su Material al crear la entidad (por ejemplo, material=None).", correct: false },
+                { text: "Quitándole sus behaviors al crear la entidad (por ejemplo, behaviors=[])", correct: true },
+                { text: "Quitándole su Transform al crear la entidad (por ejemplo, transform=None).", correct: false },
+                { text: "Deshabilitando el depth test justo antes de dibujar esa entidad en el renderer.", correct: false }
+              ]
+            },
+            {
+              question: "¿Qué pasa visualmente si en el Vertex Shader no multiplicamos la posición de la figura primitiva por las matrices de modelo, vista y proyección?",
+              answers: [
+                { text: "Se ve igual que antes, porque la GPU aplica esas matrices de forma automática.", correct: false },
+                { text: "Se ve en la posición correcta, pero sin colores ni texturas sobre su superficie.", correct: false },
+                { text: "No se transforma al espacio de la cámara: no se ve o se ve en un lugar incorrecto", correct: true },
+                { text: "Se ve en la posición correcta, pero sin perspectiva, como en una proyección ortográfica.", correct: false }
+              ]
+            },
+            {
+              question: "¿Qué pasa si deshabilito el Depth Test?",
+              answers: [
+                { text: "No se detecta qué está por delante: queda visible lo que se dibujó primero.", correct: false },
+                { text: "No se detecta qué está por delante: queda visible lo que se dibujó último", correct: true },
+                { text: "Los objetos dejan de verse, porque ningún fragmento logra pasar la prueba.", correct: false },
+                { text: "No cambia nada, porque el orden de dibujo lo resuelve el Vertex Shader.", correct: false }
+              ]
+            },
+            {
+              question: "¿El Vertex-Fragment shader se ejecuta una vez por toda la escena o individualmente para cada objeto?",
+              answers: [
+                { text: "En el raster, una sola vez para toda la escena; en el raytracing, una vez por cada objeto.", correct: false },
+                { text: "En el raster, una vez por cada objeto; en el raytracing, una sola vez para toda la escena", correct: true },
+                { text: "Siempre una sola vez para toda la escena, tanto en el raster como en el raytracing.", correct: false },
+                { text: "Siempre una vez por cada objeto de la escena, tanto en el raster como en el raytracing.", correct: false }
+              ]
+            },
+            // Módulo 2: Texturas e Iluminación
+            {
+              question: "¿Para qué se suele utilizar la operación entre vectores: Producto Escalar? ¿Qué tipo de dato devuelve?",
+              answers: [
+                { text: "Para calcular el ángulo entre dos vectores o la proyección de uno sobre otro. Devuelve un float", correct: true },
+                { text: "Para obtener un vector perpendicular a los dos vectores dados. Devuelve un vector (vec3).", correct: false },
+                { text: "Para calcular la longitud de un vector a partir de su dirección. Devuelve un entero (int).", correct: false },
+                { text: "Para combinar dos vectores en uno de mayor dimensión. Devuelve un vector de 4 componentes (vec4).", correct: false }
+              ]
+            },
+            {
+              question: "¿Para qué se suele utilizar la operación entre vectores: Producto Vectorial? ¿Qué tipo de dato devuelve?",
+              answers: [
+                { text: "Para calcular el ángulo entre dos vectores normalizados. Devuelve un valor escalar (float).", correct: false },
+                { text: "Para medir qué tan paralelos son dos vectores. Devuelve un valor escalar entre -1 y 1.", correct: false },
+                { text: "Para sumar dos vectores componente a componente. Devuelve un vector de mayor dimensión.", correct: false },
+                { text: "Para obtener un vector perpendicular a los dos dados. Devuelve un vector de la misma dimensión", correct: true }
+              ]
+            },
+            {
+              question: "¿Qué indica la normal de un vértice?",
+              answers: [
+                { text: "La dirección desde ese vértice hacia la fuente de luz.", correct: false },
+                { text: "La dirección desde ese vértice hacia la posición de la cámara.", correct: false },
+                { text: "La posición de ese vértice dentro de la textura, de 0 a 1.", correct: false },
+                { text: "Hacia dónde mira la superficie (perpendicular) en ese vértice", correct: true }
+              ]
+            },
+            {
+              question: "¿Qué son los Sampler2D?",
+              answers: [
+                { text: "Un tipo de atributo de vértice que guarda el color de cada vértice de la malla.", correct: false },
+                { text: "Un buffer que guarda los índices de los triángulos que forman cada cara.", correct: false },
+                { text: "Un tipo de uniform que representa una textura 2D y se lee con coordenadas UV", correct: true },
+                { text: "Una función de GLSL que convierte coordenadas de pantalla en coordenadas UV.", correct: false }
+              ]
+            },
+            {
+              question: "¿Qué son las coordenadas UV y en qué rango están?",
+              answers: [
+                { text: "Las coordenadas de un punto dentro de una textura (U horizontal, V vertical). Van de -1 a 1.", correct: false },
+                { text: "Las coordenadas de un punto dentro de una textura (U horizontal, V vertical). Van de 0 a 1", correct: true },
+                { text: "Las coordenadas de un píxel en la pantalla. Van de 0 al ancho y al alto de la ventana en píxeles.", correct: false },
+                { text: "Las coordenadas de un vértice en el espacio del objeto, antes de transformarlo. Van de -1 a 1.", correct: false }
+              ]
+            },
+            {
+              question: "¿Qué diferencia hay entre un píxel y un texel?",
+              answers: [
+                { text: "El píxel es un punto de la textura y el texel uno de la pantalla; no coinciden uno a uno.", correct: false },
+                { text: "Son lo mismo: un texel es simplemente un píxel que ya fue leído desde la textura.", correct: false },
+                { text: "El píxel es un punto de la pantalla y el texel uno de la textura; siempre coinciden uno a uno.", correct: false },
+                { text: "El píxel es un punto de la pantalla y el texel uno de la textura; no coinciden uno a uno", correct: true }
+              ]
+            },
+            {
+              question: "¿Qué diferencia hay entre iluminación local e iluminación global?",
+              answers: [
+                { text: "En la local cada punto ignora al resto de la escena; en la global se la tiene en cuenta", correct: true },
+                { text: "En la local se usa una sola fuente de luz; en la global se usan varias luces a la vez.", correct: false },
+                { text: "En la local se ilumina por vértice; en la global se ilumina por cada fragmento del objeto.", correct: false },
+                { text: "En la global cada punto ignora al resto de la escena; en la local se la tiene en cuenta.", correct: false }
+              ]
+            },
+            {
+              question: "¿Qué es un normal map?",
+              answers: [
+                { text: "Una textura que guarda colores (el color base de cada texel) para pintar la superficie.", correct: false },
+                { text: "Una textura que guarda la profundidad de cada texel para desplazar los vértices de la malla.", correct: false },
+                { text: "Una textura que guarda direcciones (normales) para simular relieve sin geometría", correct: true },
+                { text: "Una textura que guarda las sombras de la escena precalculadas en cada texel de la superficie.", correct: false }
+              ]
+            },
+            {
+              question: "¿Por qué los normal maps se ven celeste-violeta?",
+              answers: [
+                { text: "Porque la componente que apunta hacia afuera va en el rojo y las otras quedan a la mitad.", correct: false },
+                { text: "Porque se guardan en formato HSV, y ese tono corresponde a la saturación máxima del color.", correct: false },
+                { text: "Porque es el color que se usa por convención para distinguirlos de las texturas de color base.", correct: false },
+                { text: "Porque la componente que apunta hacia afuera va en el azul y las otras quedan a la mitad", correct: true }
+              ]
+            },
+            {
+              question: "¿Por qué las normales se transforman con la matriz de normales y no con la matriz de modelo?",
+              answers: [
+                { text: "Porque la matriz de modelo no incluye la rotación; la matriz de normales sí la incluye.", correct: false },
+                { text: "Porque la matriz de normales es mucho más rápida de calcular que la matriz de modelo.", correct: false },
+                { text: "Porque si la escala no es uniforme, la de modelo deja la normal no perpendicular", correct: true },
+                { text: "Porque la matriz de modelo no se puede enviar al Fragment Shader como un uniform.", correct: false }
+              ]
+            },
+            {
+              question: "¿Por qué de la matriz de normales sólo tomamos 3x3?",
+              answers: [
+                { text: "Porque la normal es un punto: el 3x3 conserva la traslación y descarta la rotación del objeto.", correct: false },
+                { text: "Porque GLSL no permite multiplicar un vec3 por una matriz de 4x4 en ningún tipo de shader.", correct: false },
+                { text: "Porque la cuarta columna guarda la escala, que nunca debe aplicarse sobre una normal.", correct: false },
+                { text: "Porque la normal es una dirección: el 3x3 conserva rotación y escala, sin la traslación", correct: true }
+              ]
+            },
+            {
+              question: "¿Qué datos tiene cada vértice de nuestras mallas?",
+              answers: [
+                { text: "Posición, color, normal y coordenadas UV. La tangente pertenece al Material.", correct: false },
+                { text: "Posición, normal, coordenadas UV y tangente. El color pertenece al Material", correct: true },
+                { text: "Posición y color. La normal y las coordenadas UV se calculan en el shader.", correct: false },
+                { text: "Posición, normal, UV y matriz de modelo. El color pertenece al Material.", correct: false }
+              ]
+            },
+            {
+              question: "¿Cómo están organizados los atributos de los vértices en el buffer?",
+              answers: [
+                { text: "Cada atributo en su propio buffer, y el shader los combina según su nombre.", correct: false },
+                { text: "Juntos en un único buffer, en el orden del formato \"3f 3f 2f 3f\"", correct: true },
+                { text: "Juntos en un único buffer, en cualquier orden: la GPU los identifica por tipo.", correct: false },
+                { text: "Cada atributo en un uniform distinto, enviado antes de dibujar cada vértice.", correct: false }
+              ]
+            },
+            {
+              question: "¿Qué responsabilidad tiene la clase Material?",
+              answers: [
+                { text: "Compilar los shaders del objeto y enviarles sus texturas antes de dibujarlo en cada frame.", correct: false },
+                { text: "Describir cómo se ve la superficie: color, texturas, repetición, brillo y reflectividad", correct: true },
+                { text: "Guardar la posición, la rotación y la escala del objeto para calcular su matriz de modelo.", correct: false },
+                { text: "Cargar las imágenes de las texturas desde el disco y subirlas a la GPU generando mipmaps.", correct: false }
+              ]
+            },
+            {
+              question: "¿Qué hace la clase TextureLibrary y cómo convierte los datos a un formato que OpenGL pueda usar?",
+              answers: [
+                { text: "Carga cada imagen en cada frame con Pyglet y la sube en formato CMYK a la GPU.", correct: false },
+                { text: "Carga cada imagen una sola vez con Pyglet y sube sus bytes RGBA a la GPU", correct: true },
+                { text: "Guarda el color, el brillo y la reflectividad de cada uno de los objetos de la escena.", correct: false },
+                { text: "Convierte cada imagen en un normal map para que el shader pueda iluminar la superficie.", correct: false }
+              ]
+            },
+            {
+              question: "¿Cómo sabe el shader qué textura leer?",
+              answers: [
+                { text: "Por el nombre: el shader busca la textura que se llame igual que su uniform sampler.", correct: false },
+                { text: "Por el orden de carga: el shader lee siempre la última textura subida a la GPU.", correct: false },
+                { text: "Por la UV: cada coordenada UV indica qué textura de la escena se debe leer.", correct: false },
+                { text: "Por las unidades de textura: cada uniform sampler recibe el número de su unidad", correct: true }
+              ]
+            },
+            {
+              question: "¿Para qué usamos las coordenadas uv en el Fragment Shader?",
+              answers: [
+                { text: "Para calcular la posición final de cada fragmento dentro de la pantalla.", correct: false },
+                { text: "Para calcular la dirección de la luz que llega a cada fragmento del objeto.", correct: false },
+                { text: "Para mapear la textura: indican qué texel le corresponde a cada fragmento", correct: true },
+                { text: "Para decidir qué fragmento queda por delante cuando se aplica el depth test.", correct: false }
+              ]
+            },
+            {
+              question: "¿Qué efecto visual obtenemos si la luz es completamente perpendicular a la superficie?",
+              answers: [
+                { text: "La superficie queda sin luz directa, porque la luz pasa de largo.", correct: false },
+                { text: "La superficie muestra solo el brillo especular, sin la luz difusa.", correct: false },
+                { text: "La superficie se ilumina al máximo, porque recibe la luz de frente", correct: true },
+                { text: "La superficie se ilumina a la mitad, porque el ángulo es de 90°.", correct: false }
+              ]
+            },
+            {
+              question: "¿Qué efecto visual obtenemos si la luz es completamente paralela a la superficie?",
+              answers: [
+                { text: "Se ilumina al máximo, porque recibe la luz directamente de frente.", correct: false },
+                { text: "Queda completamente negra, incluso si la escena tiene luz ambiental.", correct: false },
+                { text: "Muestra el máximo brillo especular en toda la superficie de la cara.", correct: false },
+                { text: "Queda sin luz directa (solo la ambiental), porque la luz pasa de largo", correct: true }
+              ]
+            },
+            {
+              question: "¿Para qué sirve la luz ambiental? ¿Qué efecto visual añade?",
+              answers: [
+                { text: "Crea brillos puntuales sobre la superficie que dependen de la posición de la cámara.", correct: false },
+                { text: "Da una iluminación base uniforme: las zonas sin luz directa no quedan negras", correct: true },
+                { text: "Sombrea cada cara del objeto según el ángulo con el que le llega la luz direccional.", correct: false },
+                { text: "Proyecta las sombras de cada objeto sobre las demás superficies de la escena.", correct: false }
+              ]
+            },
+            {
+              question: "¿Qué efecto visual añade la luz difusa?",
+              answers: [
+                { text: "Ilumina todo el objeto por igual, sin importar hacia dónde mira cada una de sus caras.", correct: false },
+                { text: "Sombrea según el ángulo de la luz: lo que mira a la luz es más claro y da volumen", correct: true },
+                { text: "Crea brillos puntuales sobre la superficie que dependen de la posición de la cámara.", correct: false },
+                { text: "Proyecta la sombra de cada objeto sobre el piso y sobre los demás objetos de la escena.", correct: false }
+              ]
+            },
+            {
+              question: "¿Qué efecto visual añade la luz especular?",
+              answers: [
+                { text: "Brillos que dependen de la cámara; a mayor shininess, más grandes y difusos.", correct: false },
+                { text: "Una iluminación base uniforme, igual en todas las caras del objeto sin importar la luz.", correct: false },
+                { text: "Brillos que dependen de la cámara; a mayor shininess, más chicos y concentrados", correct: true },
+                { text: "Un sombreado según el ángulo de la luz, que no depende de la posición de la cámara.", correct: false }
+              ]
+            },
+            // Módulo 3: Raycasting
+            {
+              question: "¿Dónde está el punto de origen, normalmente, en una pantalla?",
+              answers: [
+                { text: "Depende del sistema: en OpenGL y Pyglet, abajo a la izquierda", correct: true },
+                { text: "Siempre en el centro de la pantalla, sin importar la biblioteca.", correct: false },
+                { text: "Siempre arriba a la izquierda, incluso en OpenGL y en Pyglet.", correct: false },
+                { text: "Siempre abajo a la derecha, porque así lo define el propio monitor.", correct: false }
+              ]
+            },
+            {
+              question: "¿Qué son coordenadas normalizadas NDC?",
+              answers: [
+                { text: "Coordenadas de 0 a 1 en u y v, que se usan para leer las texturas.", correct: false },
+                { text: "Coordenadas en píxeles, que van de 0 al ancho y al alto de la ventana.", correct: false },
+                { text: "Coordenadas del espacio del mundo, antes de aplicar la matriz de vista.", correct: false },
+                { text: "Coordenadas de -1 a 1 en los tres ejes, independientes de la resolución", correct: true }
+              ]
+            },
+            {
+              question: "¿Qué es un Ray (rayo) en Computación Gráfica?",
+              answers: [
+                { text: "Una semirrecta: un origen y una dirección hacia la que avanza sin fin", correct: true },
+                { text: "Un segmento: un punto de origen y un punto final que define su largo.", correct: false },
+                { text: "Una recta: es infinita en ambos sentidos y no tiene un punto de origen.", correct: false },
+                { text: "Un vector de luz que sale de la fuente de luz hacia cada píxel de la pantalla.", correct: false }
+              ]
+            },
+            {
+              question: "¿Desde dónde se trazan los Rays en nuestro proyecto?",
+              answers: [
+                { text: "Solo desde la luz direccional, hacia el centro de cada objeto de la escena.", correct: false },
+                { text: "Solo desde el centro de cada objeto, hacia la posición actual de la cámara.", correct: false },
+                { text: "Solo desde el cursor del mouse, hacia la posición de la luz direccional.", correct: false },
+                { text: "Desde la cámara (hacia cada píxel o el mouse) y desde las superficies", correct: true }
+              ]
+            },
+            {
+              question: "¿Qué función cumple la hitbox?",
+              answers: [
+                { text: "Es el volumen (una OBB) contra el que calculamos si un rayo choca con el objeto", correct: true },
+                { text: "Es la malla de triángulos que se envía a la GPU para poder dibujar el objeto.", correct: false },
+                { text: "Es la textura que se dibuja sobre el objeto cuando el usuario lo selecciona.", correct: false },
+                { text: "Es la sombra que proyecta el objeto sobre el piso cuando lo ilumina la luz.", correct: false }
+              ]
+            },
+            {
+              question: "¿Cuántos Rays se necesitan para calcular si el mouse está sobre un objeto en pantalla?",
+              answers: [
+                { text: "Uno por cada objeto de la escena, desde el cursor hacia el centro de cada uno.", correct: false },
+                { text: "Uno por cada píxel de la ventana, igual que cuando hacemos raytracing.", correct: false },
+                { text: "Dos: uno desde la cámara hacia el cursor y otro desde la luz hacia el cursor.", correct: false },
+                { text: "Uno solo: desde la cámara hacia el cursor, y nos quedamos con el más cercano", correct: true }
+              ]
+            },
+            {
+              question: "¿Qué diferencia principal hay entre un Hitbox AABB (Axis Aligned Bounding Box) y uno OBB (Object Oriented Bounding Box)?",
+              answers: [
+                { text: "El AABB está alineado a los ejes del mundo; el OBB sigue la rotación del objeto", correct: true },
+                { text: "El OBB está alineado a los ejes del mundo; el AABB sigue la rotación del objeto.", correct: false },
+                { text: "El AABB es una esfera que envuelve al objeto; el OBB es una caja que lo envuelve.", correct: false },
+                { text: "El AABB se calcula en la GPU; el OBB solo se puede calcular en la CPU con Python.", correct: false }
+              ]
+            },
+            {
+              question: "¿Cómo calculamos la colisión con un OBB?",
+              answers: [
+                { text: "Llevamos el OBB al espacio de vista con la de proyección y lo resolvemos por píxel.", correct: false },
+                { text: "Probamos el rayo contra cada uno de los 12 triángulos del cubo en el espacio del mundo.", correct: false },
+                { text: "Calculamos el producto vectorial entre el rayo y cada una de las caras de la caja rotada.", correct: false },
+                { text: "Llevamos el rayo al espacio local (inversa de la de modelo) y lo resolvemos como AABB", correct: true }
+              ]
+            },
+            // Módulo 4: Raytracing por CPU
+            {
+              question: "¿Por qué los cubos no proyectan sombra sobre el piso antes del Raytracing?",
+              answers: [
+                { text: "Porque el depth test descarta los fragmentos que quedan detrás de los cubos.", correct: false },
+                { text: "Porque la luz ambiental es demasiado alta y aclara todas las zonas en sombra.", correct: false },
+                { text: "Porque en el raster cada fragmento no sabe si otro objeto le tapa la luz", correct: true },
+                { text: "Porque el piso no tiene normal map y por eso no puede recibir ninguna sombra.", correct: false }
+              ]
+            },
+            {
+              question: "¿Cuál es la principal diferencia entre Raycasting y Raytracing?",
+              answers: [
+                { text: "Raycasting se queda con el primer choque; raytracing lanza nuevos rayos para el color", correct: true },
+                { text: "Raycasting se ejecuta en la GPU; raytracing solo se puede ejecutar en la CPU con Python.", correct: false },
+                { text: "Raycasting lanza un rayo por píxel; raytracing lanza un único rayo hacia el mouse.", correct: false },
+                { text: "Raytracing se queda con el primer choque; raycasting lanza nuevos rayos para el color.", correct: false }
+              ]
+            },
+            {
+              question: "¿Cuántos Rays se trazan para renderizar un frame de pantalla? ¿De qué depende la cantidad?",
+              answers: [
+                { text: "Un rayo por cada objeto de la escena, sin importar la resolución de la imagen.", correct: false },
+                { text: "Un rayo de cámara por píxel (según la resolución), más los de sombra y reflejo", correct: true },
+                { text: "Un rayo por cada vértice de la escena, más un rayo adicional por cada luz.", correct: false },
+                { text: "Un único rayo por frame, desde la cámara hacia el centro de la pantalla.", correct: false }
+              ]
+            },
+            {
+              question: "¿Por qué se utiliza un Quad en el proyecto de Raytracing?",
+              answers: [
+                { text: "Funciona como hitbox: los rayos chocan contra él para saber qué píxel pintar.", correct: false },
+                { text: "Funciona como piso: es el objeto sobre el que se proyectan todas las sombras.", correct: false },
+                { text: "Funciona como pantalla virtual: sobre él se dibuja la imagen del raytracer", correct: true },
+                { text: "Funciona como fuente de luz: desde él salen los rayos de sombra de la escena.", correct: false }
+              ]
+            },
+            {
+              question: "¿Por qué el Quad de pantalla no aparece en las colisiones de los rayos?",
+              answers: [
+                { text: "Porque no es una entidad de la escena, sino infraestructura (ScreenQuad)", correct: true },
+                { text: "Porque está ubicado detrás de la cámara y ningún rayo llega a alcanzarlo.", correct: false },
+                { text: "Porque su reflectividad es 1.0 y los rayos lo atraviesan como a un espejo.", correct: false },
+                { text: "Porque su hitbox es un AABB y los rayos solo se prueban contra hitbox OBB.", correct: false }
+              ]
+            },
+            {
+              question: "En la escena de CPU ¿Dónde configuramos el color del cielo?",
+              answers: [
+                { text: "En el Fragment Shader, como un color fijo escrito directamente en GLSL.", correct: false },
+                { text: "En SkyGradient (domain/lighting.py), con los colores superior e inferior", correct: true },
+                { text: "En pyglet_window.py, como el color de fondo con el que se limpia la ventana.", correct: false },
+                { text: "En el Material del piso, que define el color que se ve en el horizonte.", correct: false }
+              ]
+            },
+            {
+              question: "En raytracing por CPU ¿Dónde realizamos el trazado de rayos? ¿Qué da como resultado?",
+              answers: [
+                { text: "En el Compute Shader. Da una textura que la GPU escribe directamente en su memoria.", correct: false },
+                { text: "En render de CpuRaytraceRenderer. Da los bytes de cada píxel, cargados como textura", correct: true },
+                { text: "En el Vertex Shader. Da la posición en pantalla de cada vértice de la escena.", correct: false },
+                { text: "En render de RasterRenderer. Da el color de cada objeto de la escena por separado.", correct: false }
+              ]
+            },
+            {
+              question: "¿Por qué el raytracing en CPU es más lento que en GPU?",
+              answers: [
+                { text: "Porque en CPU se trazan muchos más rayos por cada píxel que en la GPU.", correct: false },
+                { text: "Porque en CPU los rayos se procesan de a uno; en GPU, miles en paralelo", correct: true },
+                { text: "Porque en CPU se usa doble precisión y en la GPU solo números enteros.", correct: false },
+                { text: "Porque en CPU no se puede usar la inversa de la matriz de modelo.", correct: false }
+              ]
+            },
+            {
+              question: "¿Cómo obtenemos una escena con sombras más oscuras?",
+              answers: [
+                { text: "Bajando el valor ambient de la luz (DirectionalLight en domain/lighting.py)", correct: true },
+                { text: "Subiendo el valor ambient de la luz (DirectionalLight en domain/lighting.py).", correct: false },
+                { text: "Subiendo el shininess del Material de los cubos que proyectan la sombra.", correct: false },
+                { text: "Bajando la reflectividad del Material del piso que recibe la sombra.", correct: false }
+              ]
+            },
+            // Módulo 5: Raytracing por GPU
+            {
+              question: "¿El Compute Shader recorre unidades?",
+              answers: [
+                { text: "No: es una grilla de invocaciones en work groups (en el proyecto, una por píxel)", correct: true },
+                { text: "Sí: recorre los vértices de cada objeto, igual que lo hace el Vertex Shader.", correct: false },
+                { text: "Sí: recorre los fragmentos de cada triángulo, igual que el Fragment Shader.", correct: false },
+                { text: "No: se ejecuta una sola vez por frame, de forma secuencial, como en la CPU.", correct: false }
+              ]
+            },
+            {
+              question: "¿El Compute Shader se ejecuta en GPU o en CPU?",
+              answers: [
+                { text: "En la CPU.", correct: false },
+                { text: "En la CPU y la GPU, por partes.", correct: false },
+                { text: "En la GPU", correct: true },
+                { text: "En la CPU, a través de Python.", correct: false }
+              ]
+            },
+            {
+              question: "¿Cuál es la diferencia entre trabajar con Vertex y Fragment shader o hacerlo con Compute shader?",
+              answers: [
+                { text: "Compute depende del Render Pipeline y de la geometría; Vertex-Fragment es de propósito general.", correct: false },
+                { text: "Vertex-Fragment se ejecuta en la CPU de forma secuencial; Compute se ejecuta en la GPU en paralelo.", correct: false },
+                { text: "Vertex-Fragment depende del Render Pipeline y de la geometría; Compute es de propósito general", correct: true },
+                { text: "Vertex-Fragment procesa todo en paralelo; Compute procesa la imagen de a un píxel por vez.", correct: false }
+              ]
+            },
+            {
+              question: "¿Sólo podemos trazar rayos con compute shader?",
+              answers: [
+                { text: "No: también con un Fragment shader sobre un rectángulo de pantalla completa", correct: true },
+                { text: "Sí: es el único tipo de shader que puede leer los datos de toda la escena.", correct: false },
+                { text: "Sí: el Fragment shader no tiene acceso a los datos de los objetos de la escena.", correct: false },
+                { text: "No: también se puede con el Vertex shader, trazando un rayo por cada vértice.", correct: false }
+              ]
+            },
+            {
+              question: "¿Qué es un work group?",
+              answers: [
+                { text: "Un grupo de objetos de la escena que comparten el mismo Material y textura.", correct: false },
+                { text: "Un grupo de hilos de la CPU que preparan los datos que se envían a la GPU.", correct: false },
+                { text: "Un grupo de invocaciones del Compute Shader que la GPU ejecuta en paralelo", correct: true },
+                { text: "Un grupo de vértices que forman una misma cara del cubo en la malla.", correct: false }
+              ]
+            },
+            {
+              question: "En la escena de GPU ¿Dónde configuramos el color del cielo? ¿Crees que se puede obtener de los archivos de Python? ¿Cómo se los paso al shader?",
+              answers: [
+                { text: "En el SkyGradient de la escena; GpuScene lo envía al shader como uniforms vec3", correct: true },
+                { text: "Solo en sky.glsl; no se puede obtener desde Python porque vive en la GPU.", correct: false },
+                { text: "En el SkyGradient de la escena; GpuScene lo envía dentro del SSBO de objetos.", correct: false },
+                { text: "En el Material del piso; se envía al shader como una textura sampler2D.", correct: false }
+              ]
+            },
+            {
+              question: "En raytracing por GPU ¿Dónde realizamos el trazado de rayos? ¿Qué da como resultado?",
+              answers: [
+                { text: "En render de CpuRaytraceRenderer. Da un arreglo de bytes generado en Python.", correct: false },
+                { text: "En el Vertex Shader. Da la posición proyectada de cada vértice de la escena.", correct: false },
+                { text: "En GpuScene. Da un SSBO con el color final de cada píxel de la imagen.", correct: false },
+                { text: "En trace de raytracing.glsl. Da una textura que se escribe directamente en la GPU", correct: true }
+              ]
+            },
+            {
+              question: "¿Qué diferencia hay entre las clases CpuRaytraceRenderer y ComputeRaytraceRenderer?",
+              answers: [
+                { text: "ComputeRaytraceRenderer traza los rayos en Python; CpuRaytraceRenderer delega en la GPU.", correct: false },
+                { text: "Ambas trazan los rayos en Python píxel por píxel; solo cambia la resolución de la imagen.", correct: false },
+                { text: "CpuRaytraceRenderer traza los rayos en Python; ComputeRaytraceRenderer delega en la GPU", correct: true },
+                { text: "Ambas delegan el trazado de rayos en la GPU; solo cambia el tipo de shader que utilizan.", correct: false }
+              ]
+            },
+            {
+              question: "¿Por qué usamos un Compute Shader y no el tradicional Vertex-Fragment shader?",
+              answers: [
+                { text: "Porque el Vertex-Fragment shader no puede ejecutarse en paralelo en la GPU.", correct: false },
+                { text: "Porque el Compute Shader se ejecuta en la CPU y es más fácil de depurar.", correct: false },
+                { text: "Porque no necesitamos geometría ni rasterización, solo un cálculo por píxel", correct: true },
+                { text: "Porque el Vertex-Fragment shader no puede escribir colores en la pantalla.", correct: false }
+              ]
+            },
+            {
+              question: "¿Cómo se guardan datos complejos para enviar al Compute Shader?",
+              answers: [
+                { text: "En uniforms: uno por cada dato de cada objeto de la escena.", correct: false },
+                { text: "En un SSBO: un buffer con un arreglo de structs SceneObject", correct: true },
+                { text: "En un VBO: un buffer con los vértices de todos los objetos.", correct: false },
+                { text: "En un sampler2D: una textura con los datos codificados como colores.", correct: false }
+              ]
+            },
+            {
+              question: "¿Por qué usamos SSBOs?",
+              answers: [
+                { text: "Porque los uniforms no se pueden leer desde un Compute Shader en ningún caso.", correct: false },
+                { text: "Porque hay que enviar muchos datos y los uniforms tienen un tamaño muy limitado", correct: true },
+                { text: "Porque los SSBO se procesan en la CPU y así le liberan trabajo a la GPU.", correct: false },
+                { text: "Porque los SSBO se escriben más rápido que una textura del mismo tamaño.", correct: false }
+              ]
+            },
+            {
+              question: "¿Cómo se declara un SSBO en el compute shader?",
+              answers: [
+                { text: "Con la palabra clave uniform, precedida del layout (std140) y la location.", correct: false },
+                { text: "Con la palabra clave in, precedida de la location del atributo del vértice.", correct: false },
+                { text: "Con la palabra clave sampler2D, precedida del binding de la unidad de textura.", correct: false },
+                { text: "Con la palabra clave buffer, precedida del layout (std430) y el binding", correct: true }
+              ]
+            },
+            {
+              question: "¿Qué importa más: el binding o el nombre de la variable?",
+              answers: [
+                { text: "El nombre: Python busca el bloque del shader que se llame igual.", correct: false },
+                { text: "Ninguno: el shader siempre toma el primer buffer que se haya creado.", correct: false },
+                { text: "Los dos por igual: si alguno no coincide, el shader no llega a compilar.", correct: false },
+                { text: "El binding: conecta el buffer de Python con el bloque del shader", correct: true }
+              ]
+            },
+            {
+              question: "¿Qué guarda la matriz model de cada SceneObject? ¿Para qué se usa?",
+              answers: [
+                { text: "La de modelo; lleva direcciones del espacio local al mundo (ej.: la tangente)", correct: true },
+                { text: "La inversa de la de modelo; lleva los rayos del mundo al espacio local del objeto.", correct: false },
+                { text: "La de vista de la cámara; lleva todos los objetos de la escena al espacio de vista.", correct: false },
+                { text: "La de proyección; lleva los objetos al rango de coordenadas NDC, de -1 a 1.", correct: false }
+              ]
+            },
+            {
+              question: "¿Qué guarda la matriz inverse_model de cada SceneObject? ¿Para qué se usa?",
+              answers: [
+                { text: "La inversa de la de modelo; lleva los rayos al espacio local para las colisiones", correct: true },
+                { text: "La de modelo; lleva direcciones del espacio local al mundo, como la tangente.", correct: false },
+                { text: "La inversa de la de vista; lleva los rayos de la cámara al espacio de vista.", correct: false },
+                { text: "La transpuesta de la de modelo; normaliza la escala de cada uno de los ejes.", correct: false }
+              ]
+            },
+            {
+              question: "¿Qué datos de material guarda cada SceneObject? ¿Para qué se usan?",
+              answers: [
+                { text: "Posición, rotación y escala del objeto, que se usan para ubicarlo dentro de la escena.", correct: false },
+                { text: "Color, reflectividad, shininess, capas de textura y repetición, para el color final", correct: true },
+                { text: "Los vértices y los índices de la malla, que se usan para rasterizar cada objeto.", correct: false },
+                { text: "Solo el color del objeto; las texturas y el brillo se envían en otro SSBO aparte.", correct: false }
+              ]
+            },
+            // Módulo 6: Pathtracing (grupal · opcional para individuales)
+            {
+              question: "¿Cuál es la principal diferencia entre Raytracing y Pathtracing?",
+              answers: [
+                { text: "Pathtracing sigue un camino fijo por píxel; raytracing rebota al azar y promedia muestras.", correct: false },
+                { text: "Raytracing se ejecuta en la GPU; pathtracing solo se puede ejecutar en la CPU con Python.", correct: false },
+                { text: "Raytracing sigue un camino fijo por píxel; pathtracing rebota al azar y promedia muestras", correct: true },
+                { text: "Raytracing calcula solo las sombras; pathtracing calcula solo los reflejos de los espejos.", correct: false }
+              ]
+            },
+            {
+              question: "¿Cuál es la diferencia visual que agrega Pathtracing a la escena?",
+              answers: [
+                { text: "Reflejos perfectos en todas las superficies de la escena, sin ningún tipo de ruido.", correct: false },
+                { text: "La luz que rebota entre objetos: sombras suaves y colores que tiñen a los vecinos", correct: true },
+                { text: "Sombras con bordes duros y bien definidos, más oscuras que en el raytracing.", correct: false },
+                { text: "Brillos especulares más chicos y concentrados, según el shininess del Material.", correct: false }
+              ]
+            },
+            {
+              question: "¿Cuántos rebotes de luz utilizamos en nuestro proyecto?",
+              answers: [
+                { text: "Raytracing por GPU: hasta 2 rebotes; pathtracing: hasta 4", correct: true },
+                { text: "Raytracing por GPU: hasta 4 rebotes; pathtracing: hasta 2.", correct: false },
+                { text: "Raytracing por GPU: 1 solo rebote; pathtracing: sin límite.", correct: false },
+                { text: "Raytracing por GPU y pathtracing: hasta 8 rebotes cada uno.", correct: false }
+              ]
+            },
+            {
+              question: "¿Qué significa una reflectividad de 1.0?",
+              answers: [
+                { text: "Es un espejo perfecto: no se ve su color, solo lo que refleja", correct: true },
+                { text: "Es completamente mate: se ve solo su propio color, sin reflejos.", correct: false },
+                { text: "Refleja la mitad de la luz y muestra la mitad de su propio color.", correct: false },
+                { text: "Emite luz propia, como si fuera una fuente de luz de la escena.", correct: false }
+              ]
+            },
+            {
+              question: "¿Qué significa una reflectividad de 0.0?",
+              answers: [
+                { text: "Es un espejo perfecto: no se ve su color, solo lo que refleja.", correct: false },
+                { text: "Es transparente: los rayos la atraviesan sin desviarse en ningún sentido.", correct: false },
+                { text: "Absorbe toda la luz que recibe y se ve completamente negra.", correct: false },
+                { text: "Es completamente mate: no genera rayos reflejados y vemos su color", correct: true }
+              ]
+            }
+        ];
+
+        const questionTextElement = document.getElementById('question-text');
+        const answerButtonsElement = document.getElementById('answer-buttons');
+        const nextButton = document.getElementById('next-btn');
+        const questionCounterElement = document.getElementById('question-counter');
+        const scoreElement = document.getElementById('score');
+
+        const quizArea = document.getElementById('quiz-area');
+        const resultsContainer = document.getElementById('results-container');
+        const resultsText = document.getElementById('results-text');
+        const playAgainBtn = document.getElementById('play-again-btn');
+
+        let shuffledQuestions, currentQuestionIndex;
+        let score = 0;
+
+        function startQuiz() {
+            score = 0;
+            shuffledQuestions = questions.sort(() => Math.random() - .5);
+            currentQuestionIndex = 0;
+            quizArea.style.display = 'block';
+            resultsContainer.style.display = 'none';
+            nextButton.style.display = 'none';
+            nextButton.innerHTML = "Siguiente Pregunta →";
+            showQuestion();
+        }
+
+        function showQuestion() {
+            resetState();
+            let currentQuestion = shuffledQuestions[currentQuestionIndex];
+            let questionNo = currentQuestionIndex + 1;
+            questionTextElement.innerText = currentQuestion.question;
+            questionCounterElement.innerText = `Pregunta ${questionNo} de ${shuffledQuestions.length}`;
+            scoreElement.innerText = `Puntaje: ${score}`;
+
+            currentQuestion.answers.forEach(answer => {
+                const button = document.createElement('button');
+                button.innerText = answer.text;
+                button.classList.add('btn');
+                answerButtonsElement.appendChild(button);
+                if (answer.correct) {
+                    button.dataset.correct = answer.correct;
+                }
+                button.addEventListener('click', selectAnswer);
+            });
+        }
+
+        function resetState() {
+            nextButton.style.display = 'none';
+            while (answerButtonsElement.firstChild) {
+                answerButtonsElement.removeChild(answerButtonsElement.firstChild);
+            }
+        }
+
+        function selectAnswer(e) {
+            const selectedBtn = e.target;
+            const isCorrect = selectedBtn.dataset.correct === "true";
+
+            if (isCorrect) {
+                selectedBtn.classList.add('correct');
+                score++;
+                scoreElement.innerText = `Puntaje: ${score}`;
+            } else {
+                selectedBtn.classList.add('incorrect');
+            }
+
+            Array.from(answerButtonsElement.children).forEach(button => {
+                if (button.dataset.correct === "true") {
+                    button.classList.add('correct');
+                }
+                button.disabled = true;
+            });
+
+            if (shuffledQuestions.length > currentQuestionIndex + 1) {
+                 nextButton.style.display = 'block';
+            } else {
+                nextButton.innerHTML = "Ver Resultados";
+                nextButton.style.display = 'block';
+            }
+        }
+
+        function handleNextButton() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < shuffledQuestions.length) {
+                showQuestion();
+            } else {
+                showResults();
+            }
+        }
+        
+        function showResults(){
+             quizArea.style.display = 'none';
+             resultsContainer.style.display = 'block';
+             let finalMessage = `¡Juego Terminado! Obtuviste ${score} de ${shuffledQuestions.length} respuestas correctas.`;
+             if(score / shuffledQuestions.length > 0.7) {
+                 finalMessage += " ¡Excelente trabajo! 🚀"
+             } else {
+                 finalMessage += " ¡Sigue practicando! 💪"
+             }
+             resultsText.innerText = finalMessage;
+        }
+
+
+        nextButton.addEventListener('click', () => {
+            if(currentQuestionIndex < shuffledQuestions.length){
+                handleNextButton();
+            }
+        });
+        
+        playAgainBtn.addEventListener('click', startQuiz);
+
+        startQuiz();
+    </script>
+</body>
+</html>
